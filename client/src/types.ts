@@ -11,4 +11,5 @@ export interface Validation {
 export enum BoardType {
   Classic,
   Circle,
+  Opponent,
 }

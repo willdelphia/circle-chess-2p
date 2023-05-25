@@ -49,25 +49,27 @@ type FENpiece =
   | "K";
 
 export class CircleBoard {
+  color: string;
   svg: SVGSVGElement | null | undefined;
   pieceContainer: SVGGElement | null | undefined;
   game: any;
   validateMove: (fromTo: FromTo, sourceBoard: BoardType) => Validation;
 
   constructor(
+    color: string,
     element: HTMLDivElement | null,
     initialPosition: string,
     game: any,
     validateMove: (fromTo: FromTo, sourceBoard: BoardType) => Validation
   ) {
+    this.color = color;
     this.game = game;
-    this.pieceContainer = this.svg?.querySelector(".pieces");
-    this.setFen(initialPosition);
-    this.validateMove = validateMove;
-
     if (element) {
       this.renderBoard(element);
     }
+    this.pieceContainer = this.svg?.querySelector(".pieces");
+    this.setFen(initialPosition);
+    this.validateMove = validateMove;
   }
 
   setFen(fenString: string) {
@@ -78,7 +80,9 @@ export class CircleBoard {
     positionArray.forEach((rank, rankIndex) => {
       rank.forEach((piece, fileIndex) => {
         const pieceCode = pieceMap[piece];
-        this.addPiece(pieceCode, coords[rankIndex][fileIndex]);
+        if (piece) {
+          this.addPiece(pieceCode, coords[rankIndex][fileIndex]);
+        }
       });
     });
   }
@@ -146,55 +150,58 @@ export class CircleBoard {
         });
       };
 
-      Draggable.create("#" + id, {
-        bounds: this.svg,
-        onClick: function () {
-          console.log("clicked");
-        },
-        onDragStart: function () {
-          const from = thisPiece.getAttribute("data-square");
-          const moves = _this.game.moves(from);
-          _this.highlightSquares(moves);
-        },
-        onDragEnd: function () {
-          _this.clearHighlights();
-          const from = thisPiece.getAttribute("data-square");
-          let to;
-          _this.svg
-            ?.querySelectorAll("[data-square]")
-            ?.forEach((element: Element) => {
-              if (this.hitTest(element, "50%")) {
-                to = element.getAttribute("data-square");
-              }
-            });
+      if (pieceType.substring(0, 1) === this.color) {
+        Draggable.create("#" + id, {
+          bounds: this.svg,
+          onClick: function () {
+            console.log("clicked");
+          },
+          onDragStart: function () {
+            const from = thisPiece.getAttribute("data-square");
+            const moves = _this.game.moves(from);
+            _this.highlightSquares(moves);
+          },
+          onDragEnd: function () {
+            _this.clearHighlights();
+            const from = thisPiece.getAttribute("data-square");
+            let to;
+            _this.svg
+              ?.querySelectorAll("[data-square]")
+              ?.forEach((element: Element) => {
+                if (this.hitTest(element, "50%")) {
+                  to = element.getAttribute("data-square");
+                }
+              });
 
-          if (to && from) {
-            const response = _this.validateMove(
-              {
-                from,
-                to: to,
-              },
-              BoardType.Circle
-            );
-            if (response.valid) {
-              _this.checkForCapturedPieceAndRemove(to);
-              snapToSquare(to);
-              thisPiece.setAttribute("data-square", to);
+            if (to && from) {
+              const response = _this.validateMove(
+                {
+                  from,
+                  to: to,
+                },
+                BoardType.Circle
+              );
+              if (response.valid) {
+                _this.checkForCapturedPieceAndRemove(to);
+                snapToSquare(to);
+                thisPiece.setAttribute("data-square", to);
 
-              if (response.valid && response.additional) {
-                const { from, to } = response.additional;
-                setTimeout(() => {
-                  this.movePiece(from, to);
-                }, 100);
+                // if (response.valid && response.additional) {
+                //   const { from, to } = response.additional;
+                //   console.log("Circle Response", response.additional);
+                //   setTimeout(() => {
+                //     _this.movePiece(from, to);
+                //   }, 100);
+                // }
+              } else {
+                snapBack();
               }
             } else {
               snapBack();
             }
-          } else {
-            snapBack();
-          }
-        },
-      });
+          },
+        });
+      }
     }
   }
 

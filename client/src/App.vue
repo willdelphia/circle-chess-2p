@@ -25,15 +25,18 @@ const store = useMainStore();
 let game: any;
 let circleBoard: any;
 let board: any;
+let socket: any;
 
-const showCircle = ref(false);
+const showCircle = ref(true);
+const yourTurn = ref(true);
 
 function newGame() {
   game = new Game();
 }
 
-function initBoards() {
+function initBoards(color: string) {
   circleBoard = new CircleBoard(
+    color,
     document.querySelector("#circle-board"),
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
     game,
@@ -42,6 +45,7 @@ function initBoards() {
 
   board = new Chessboard(document.getElementById("square-board"), {
     position: FEN.start,
+    orientation: color,
     assetsUrl: "./assets/",
   });
 
@@ -59,19 +63,11 @@ function initBoards() {
           },
           BoardType.Classic
         );
-
-        if (response.valid && response.additional) {
-          const { from, to } = response.additional;
-          setTimeout(() => {
-            board.movePiece(from.toLowerCase(), to.toLowerCase(), true);
-          }, 100);
-        }
-
         return response.valid;
       case INPUT_EVENT_TYPE.moveInputCanceled:
         console.log(`moveInputCanceled`);
     }
-  });
+  }, color);
 }
 
 // @ts-ignore
@@ -93,12 +89,14 @@ onMounted(() => {
   if (roomName) {
     store.roomName = roomName;
     store.color = "b";
+    store.host = false;
+    yourTurn.value = false;
   } else {
     store.roomName = makeid(7);
     store.color = "w";
   }
 
-  const socket = io({
+  socket = io({
     query: {
       roomName: store.roomName,
     },
@@ -107,22 +105,59 @@ onMounted(() => {
   socket.on("connect", () => {
     console.log("Connection Established");
     store.connectionMade = true;
-    nextTick(() => {
-      newGame();
-      initBoards();
-    });
+
+    if (!store.host) {
+      console.log("I am not the host, so I will let them know I am here");
+      socket.emit("friendJoined", true);
+      store.friendJoined = true;
+      nextTick(() => {
+        newGame();
+        initBoards(store.host ? "w" : "b");
+      });
+    }
+  });
+
+  socket.on("friendJoined", () => {
+    console.log("My friend joined");
+    if (store.host) {
+      store.friendJoined = true;
+      nextTick(() => {
+        newGame();
+        initBoards(store.host ? "w" : "b");
+      });
+    }
+  });
+
+  socket.on("move", (move: FromTo) => {
+    validateMove(move, BoardType.Opponent);
   });
 });
 
 function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
   try {
     const moveValue = game.move(fromTo.from, fromTo.to);
+    console.log(moveValue);
 
     if (sourceBoard === BoardType.Circle) {
       board.movePiece(fromTo.from, fromTo.to, true);
-    } else {
+      socket.emit("move", { from: fromTo.from, to: fromTo.to });
+    } else if (sourceBoard === BoardType.Classic) {
+      circleBoard.movePiece(fromTo.from, fromTo.to);
+      socket.emit("move", { from: fromTo.from, to: fromTo.to });
+    } else if (sourceBoard === BoardType.Opponent) {
+      board.movePiece(fromTo.from, fromTo.to, true);
       circleBoard.movePiece(fromTo.from, fromTo.to);
     }
+
+    if (moveValue.additional) {
+      const { from, to } = moveValue.additional;
+      setTimeout(() => {
+        board.movePiece(from.toLowerCase(), to.toLowerCase(), true);
+        circleBoard.movePiece(from.toLowerCase(), to.toLowerCase());
+      }, 100);
+    }
+
+    yourTurn.value = !yourTurn.value;
 
     return { valid: true, additional: moveValue.additional };
   } catch (e) {
@@ -133,11 +168,16 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
 </script>
 
 <template>
-  <WelcomeNewPlayer v-if="!store.connectionMade" />
-  <div id="board-container" v-else>
-    <button @click="showCircle = !showCircle">Toggle View</button>
+  <WelcomeNewPlayer v-if="store.host && !store.friendJoined" />
+  <div id="board-container" v-if="store.friendJoined">
+    <div class="button-row">
+      <button @click="showCircle = !showCircle">Toggle View</button>
+    </div>
     <div v-show="showCircle" id="circle-board" class="circle-board"></div>
     <div v-show="!showCircle" id="square-board" class="square-board"></div>
+    <div class="turn-note">
+      {{ yourTurn ? "Your Turn" : "Opponent's Turn" }}
+    </div>
   </div>
 </template>
 

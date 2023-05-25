@@ -10,18 +10,32 @@ const io = new Server(server);
 
 app.use(express.static("../client/dist"));
 
+interface Move {
+  from: string;
+  to: string;
+}
+
 io.on("connection", (socket: Socket) => {
   console.log("Connection");
 
   const roomName = socket.handshake.query.roomName;
+  let roomJoined = false;
   if (roomName && typeof roomName === "string") {
     console.log("Someone is joining ", socket.handshake.query.roomName);
     socket.join(socket.handshake.query.roomName);
   }
 
-  socket.on("action", (action) => {
-    console.log("Move Taken Action", action.length);
-    socket.broadcast.to(roomName).emit("action", action);
+  socket.on("move", (action: Move) => {
+    console.log("Move Taken", action);
+    socket.broadcast.to(roomName).emit("move", action);
+  });
+
+  socket.on("friendJoined", (action) => {
+    console.log("Friend Joined", action);
+    if (!roomJoined) {
+      roomJoined = true;
+      socket.broadcast.to(roomName).emit("friendJoined", action);
+    }
   });
 });
 

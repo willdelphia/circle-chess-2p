@@ -5,7 +5,23 @@ const store = useMainStore();
 </script>
 
 <template>
-  Send the following link to your opponent:
-  <input type="text" :value="store.roomName" />
+  <div>Send the following link to your opponent:</div>
+  <div style="margin-top: 1rem">
+    <input
+      type="text"
+      :value="'http://localhost:5555/?roomname=' + store.roomName"
+    />
+  </div>
 </template>
-<style lang="scss"></style>
+
+<style lang="scss" scoped>
+div {
+  text-align: center;
+}
+
+input {
+  width: 500px;
+  text-align: center;
+  font-size: 1.4em;
+}
+</style>

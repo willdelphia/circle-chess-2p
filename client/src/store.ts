@@ -9,5 +9,7 @@ export const useMainStore = defineStore("main", {
     roomName: null as string | null,
     connectionMade: false,
     color: null as string | null,
+    host: true,
+    friendJoined: false,
   }),
 });
