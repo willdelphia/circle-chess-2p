@@ -1,0 +1,18 @@
+.square-board,
+.circle-board {
+  width: calc(90vmin - 100px);
+  margin: auto;
+}
+
+.hidden {
+  display: none;
+}
+
+.button-row {
+  text-align: center;
+  margin-bottom: 1rem;
+
+  button {
+    padding: 1rem 2rem;
+  }
+}
