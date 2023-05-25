@@ -1,0 +1,21 @@
+{
+  "name": "draw-collaboration",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "heroku-prebuild": "cd ./server && npm install",
+    "start": "cd ./server && npm run start",
+    "heroku-postbuild": "cd ./client && npm install && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/willdelphia/draw-collaboration.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/willdelphia/draw-collaboration/issues"
+  },
+  "homepage": "https://github.com/willdelphia/draw-collaboration#readme"
+}
