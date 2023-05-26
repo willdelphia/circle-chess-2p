@@ -157,6 +157,9 @@ export class CircleBoard {
             console.log("clicked");
           },
           onDragStart: function () {
+            //move z position to top of everything else
+            const parent = thisPiece.parentElement;
+            parent?.append(thisPiece);
             const from = thisPiece.getAttribute("data-square");
             const moves = _this.game.moves(from);
             _this.highlightSquares(moves);
@@ -213,6 +216,8 @@ export class CircleBoard {
     this.checkForCapturedPieceAndRemove(to);
 
     if (pieceOnFromSquare) {
+      const parent = pieceOnFromSquare.parentElement;
+      parent?.append(pieceOnFromSquare);
       const toSquareCoordinate = this.getCoordOffset(to);
       gsap.to(pieceOnFromSquare, {
         x: toSquareCoordinate.x,
