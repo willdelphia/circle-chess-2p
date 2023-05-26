@@ -176,15 +176,14 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
     <div v-show="showCircle" id="circle-board" class="circle-board"></div>
     <div v-show="!showCircle" id="square-board" class="square-board"></div>
     <div class="turn-note">
-      {{
-        yourTurn
-          ? "Your Turn" + store.color === "w"
-            ? "♖"
-            : "♜"
-          : "Opponent's Turn " + store.color === "w"
-          ? "♜"
-          : "♖"
-      }}
+      <span v-if="yourTurn"> Your turn </span>
+
+      <span v-else> Opponent's Turn </span>
+
+      <span v-if="yourTurn && store.color == 'w'">⚪</span>
+      <span v-if="yourTurn && store.color == 'b'">⚫</span>
+      <span v-if="!yourTurn && store.color == 'w'">⚫</span>
+      <span v-if="!yourTurn && store.color == 'b'">⚪</span>
     </div>
   </div>
 </template>
