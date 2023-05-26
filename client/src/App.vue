@@ -149,12 +149,28 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
       circleBoard.movePiece(fromTo.from, fromTo.to);
     }
 
-    if (moveValue.additional) {
+    if (moveValue?.additional?.castle) {
       const { from, to } = moveValue.additional;
       setTimeout(() => {
         board.movePiece(from.toLowerCase(), to.toLowerCase(), true);
         circleBoard.movePiece(from.toLowerCase(), to.toLowerCase());
       }, 100);
+    }
+
+    if (moveValue?.additional?.enPassant) {
+      board.setPiece(moveValue.additional.capture, null);
+      circleBoard.removePiece(moveValue.additional.capture);
+    }
+
+    if (moveValue?.additional?.promotion) {
+      const { piece, color } = moveValue.additional;
+      console.log("Promoting", fromTo.to, piece, color);
+
+      setTimeout(() => {
+        board.setPiece(fromTo.to, `${color}${piece}`);
+        circleBoard.removePiece(fromTo.to);
+        circleBoard.addPiece(`${color}${piece}`, fromTo.to);
+      }, 10);
     }
 
     yourTurn.value = !yourTurn.value;

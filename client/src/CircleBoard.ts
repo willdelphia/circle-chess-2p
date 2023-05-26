@@ -185,17 +185,9 @@ export class CircleBoard {
                 BoardType.Circle
               );
               if (response.valid) {
-                _this.checkForCapturedPieceAndRemove(to);
+                _this.removePiece(to);
                 snapToSquare(to);
                 thisPiece.setAttribute("data-square", to);
-
-                // if (response.valid && response.additional) {
-                //   const { from, to } = response.additional;
-                //   console.log("Circle Response", response.additional);
-                //   setTimeout(() => {
-                //     _this.movePiece(from, to);
-                //   }, 100);
-                // }
               } else {
                 snapBack();
               }
@@ -213,7 +205,7 @@ export class CircleBoard {
       `[data-square=${from}]`
     );
 
-    this.checkForCapturedPieceAndRemove(to);
+    this.removePiece(to);
 
     if (pieceOnFromSquare) {
       const parent = pieceOnFromSquare.parentElement;
@@ -229,9 +221,9 @@ export class CircleBoard {
     }
   }
 
-  checkForCapturedPieceAndRemove(to: string) {
+  removePiece(square: string) {
     const pieceOnToSquare = this.pieceContainer?.querySelector(
-      `[data-square=${to}]`
+      `[data-square=${square}]`
     );
     if (pieceOnToSquare) {
       pieceOnToSquare.remove();

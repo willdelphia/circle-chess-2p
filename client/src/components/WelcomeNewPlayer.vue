@@ -5,22 +5,34 @@ const store = useMainStore();
 </script>
 
 <template>
-  <div>Send the following link to your opponent:</div>
-  <div style="margin-top: 1rem">
-    <input
-      type="text"
-      :value="'https://circle-chess.herokuapp.com/?roomname=' + store.roomName"
-    />
+  <div class="root">
+    <div>
+      <div>Send the following link to your opponent:</div>
+      <div style="margin-top: 1rem">
+        <input
+          type="text"
+          :value="
+            'https://circle-chess.herokuapp.com/?roomname=' + store.roomName
+          "
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 20px);
+}
 div {
   text-align: center;
 }
 
 input {
-  width: 500px;
+  width: 800px;
   text-align: center;
   font-size: 1.4em;
 }

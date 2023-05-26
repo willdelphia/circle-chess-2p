@@ -844,6 +844,9 @@ export default class Board {
     // Move logic
     const chessmanFrom = this.getPiece(from);
     const chessmanTo = this.getPiece(to);
+    let promotion = false;
+    let enPassant = null;
+    let color = "w";
 
     if (!chessmanFrom) {
       throw new Error(`There is no piece at ${from}`);
@@ -855,13 +858,17 @@ export default class Board {
     // pawn reaches an end of a chessboard
     if (this.isPlayingWhite() && this.isPawn(chessmanFrom) && to[1] === "8") {
       Object.assign(this.configuration.pieces, { [to]: "Q" });
+      promotion = true;
     }
     if (this.isPlayingBlack() && this.isPawn(chessmanFrom) && to[1] === "1") {
       Object.assign(this.configuration.pieces, { [to]: "q" });
+      promotion = true;
+      color = "b";
     }
 
     // En passant check
     if (this.isPawn(chessmanFrom) && to === this.configuration.enPassant) {
+      enPassant = downByColor(to, this.getPlayingColor());
       delete this.configuration.pieces[downByColor(to, this.getPlayingColor())];
     }
 
@@ -934,7 +941,17 @@ export default class Board {
     }
 
     if (rookCastleMove) {
-      return { from, to };
+      return { castle: true, from: from.toLowerCase(), to: to.toLowerCase() };
+    }
+    if (enPassant) {
+      return { enPassant: true, capture: enPassant.toLowerCase() };
+    }
+    if (promotion) {
+      return {
+        promotion: true,
+        piece: "q",
+        color,
+      };
     }
   }
 
