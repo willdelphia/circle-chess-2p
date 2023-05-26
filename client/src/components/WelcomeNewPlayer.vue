@@ -9,7 +9,7 @@ const store = useMainStore();
   <div style="margin-top: 1rem">
     <input
       type="text"
-      :value="'http://localhost:5555/?roomname=' + store.roomName"
+      :value="'https://circle-chess.herokuapp.com/?roomname=' + store.roomName"
     />
   </div>
 </template>
