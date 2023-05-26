@@ -252,7 +252,8 @@ export class CircleBoard {
         <defs>
           <style>
             .cls-1 {
-              stroke: #808285;
+              stroke: white;
+              stroke-width: 2;
             }
 
             .cls-1 {
