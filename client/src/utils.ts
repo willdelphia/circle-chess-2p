@@ -10,3 +10,11 @@ export function makeid(length: number): string {
   }
   return result;
 }
+
+export function setQueryParam(name: string, value: string) {
+  const searchParams = new URLSearchParams(window.location.search);
+  searchParams.set(name, value);
+  const newRelativePathQuery =
+    window.location.pathname + "?" + searchParams.toString();
+  history.pushState(null, "", newRelativePathQuery);
+}

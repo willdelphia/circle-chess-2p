@@ -9,7 +9,11 @@ export const useMainStore = defineStore("main", {
     roomName: null as string | null,
     connectionMade: false,
     color: null as string | null,
+    yourTurn: true,
     host: true,
     friendJoined: false,
+    hostJoined: false,
+    gameStarted: false,
+    fen: null as string | null,
   }),
 });

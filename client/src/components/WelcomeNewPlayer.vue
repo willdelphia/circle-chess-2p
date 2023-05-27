@@ -2,6 +2,7 @@
 import { useMainStore } from "../store";
 
 const store = useMainStore();
+const domain = import.meta.env.VITE_DOMAIN;
 </script>
 
 <template>
@@ -9,12 +10,7 @@ const store = useMainStore();
     <div>
       <div>Send the following link to your opponent:</div>
       <div style="margin-top: 1rem">
-        <input
-          type="text"
-          :value="
-            'https://circle-chess.herokuapp.com/?roomname=' + store.roomName
-          "
-        />
+        <input type="text" :value="domain + '?roomname=' + store.roomName" />
       </div>
     </div>
   </div>

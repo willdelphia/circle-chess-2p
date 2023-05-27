@@ -4,9 +4,9 @@ import "./main.scss";
 import "./circle-chessboard.scss";
 
 import WelcomeNewPlayer from "./components/WelcomeNewPlayer.vue";
-import { nextTick, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useMainStore } from "./store";
-import { makeid } from "./utils";
+import { makeid, setQueryParam } from "./utils";
 import { io } from "socket.io-client";
 
 // @ts-ignore
@@ -28,23 +28,34 @@ let board: any;
 let socket: any;
 
 const showCircle = ref(true);
-const yourTurn = ref(true);
 
 function newGame() {
-  game = new Game();
+  console.log("Starting new game...");
+  if (store.fen) {
+    console.log("...with fen from server");
+    game = new Game(store.fen);
+  } else {
+    game = new Game();
+  }
+
+  initBoards(store.host ? "w" : "b", store.fen);
+  store.gameStarted = true;
+  if (store.roomName && store.host) {
+    setQueryParam("host", store.roomName);
+  }
 }
 
-function initBoards(color: string) {
+function initBoards(color: string, fen: string | null) {
   circleBoard = new CircleBoard(
     color,
     document.querySelector("#circle-board"),
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+    fen ? fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
     game,
     validateMove
   );
 
   board = new Chessboard(document.getElementById("square-board"), {
-    position: FEN.start,
+    position: fen ? fen : FEN.start,
     orientation: color,
     assetsUrl: "./assets/",
   });
@@ -70,30 +81,25 @@ function initBoards(color: string) {
   }, color);
 }
 
-// @ts-ignore
-function updateCircleBoard() {
-  const fen = game.exportFEN();
-  circleBoard.setFen(fen);
-}
-
-//@ts-ignore
-function updateBoard() {
-  const fen = game.exportFEN();
-  board.setPosition(fen, true);
-}
-
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search);
   const roomName = urlParams.get("roomname");
+  const hostRoomName = urlParams.get("host");
 
   if (roomName) {
     store.roomName = roomName;
     store.color = "b";
     store.host = false;
-    yourTurn.value = false;
+    store.yourTurn = false;
+  } else if (hostRoomName) {
+    store.roomName = hostRoomName;
+    store.host = true;
+    store.color = "w";
+    //don't know whose turn it is at this point
   } else {
     store.roomName = makeid(7);
     store.color = "w";
+    store.host = true;
   }
 
   socket = io({
@@ -102,30 +108,43 @@ onMounted(() => {
     },
   });
 
-  socket.on("connect", () => {
+  socket.on("connect", (arg: any) => {
+    console.log(arg);
     console.log("Connection Established");
     store.connectionMade = true;
 
     if (!store.host) {
-      console.log("I am not the host, so I will let them know I am here");
+      //for the friend
       socket.emit("friendJoined", true);
+      store.hostJoined = true;
       store.friendJoined = true;
-      nextTick(() => {
-        newGame();
-        initBoards(store.host ? "w" : "b");
-      });
+    } else {
+      // for the host
+      store.hostJoined = true;
     }
   });
 
-  socket.on("friendJoined", () => {
-    console.log("My friend joined");
-    if (store.host) {
-      store.friendJoined = true;
-      nextTick(() => {
-        newGame();
-        initBoards(store.host ? "w" : "b");
-      });
+  socket.on("new", () => {
+    console.log("New game event");
+    if (!store.host) {
+      //if friend
+      afterJoin();
     }
+  });
+
+  socket.on("fen", (fen: string) => {
+    console.log("Fen event");
+    store.fen = fen;
+    setCurrentTurnFromFen();
+    store.hostJoined = true;
+    store.friendJoined = true;
+    afterJoin();
+  });
+
+  socket.on("friendJoined", () => {
+    console.log("Friend joined event");
+    store.friendJoined = true;
+    afterJoin();
   });
 
   socket.on("move", (move: FromTo) => {
@@ -133,17 +152,40 @@ onMounted(() => {
   });
 });
 
+function afterJoin() {
+  console.log(
+    "After join check...",
+    store.friendJoined,
+    store.hostJoined,
+    !store.gameStarted
+  );
+  if (store.friendJoined && store.hostJoined && !store.gameStarted) {
+    newGame();
+  } else {
+    console.warn("Not ready yet...");
+  }
+}
+
+function setCurrentTurnFromFen() {
+  if (store.fen) {
+    const splitFen = store.fen.split(" ");
+    const playersTurn = splitFen[1];
+    store.yourTurn = store.color === playersTurn;
+  }
+}
+
 function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
   try {
     const moveValue = game.move(fromTo.from, fromTo.to);
+    const fenNow = game.exportFEN();
     console.log(moveValue);
 
     if (sourceBoard === BoardType.Circle) {
       board.movePiece(fromTo.from, fromTo.to, true);
-      socket.emit("move", { from: fromTo.from, to: fromTo.to });
+      socket.emit("move", { from: fromTo.from, to: fromTo.to, fen: fenNow });
     } else if (sourceBoard === BoardType.Classic) {
       circleBoard.movePiece(fromTo.from, fromTo.to);
-      socket.emit("move", { from: fromTo.from, to: fromTo.to });
+      socket.emit("move", { from: fromTo.from, to: fromTo.to, fen: fenNow });
     } else if (sourceBoard === BoardType.Opponent) {
       board.movePiece(fromTo.from, fromTo.to, true);
       circleBoard.movePiece(fromTo.from, fromTo.to);
@@ -173,7 +215,7 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
       }, 10);
     }
 
-    yourTurn.value = !yourTurn.value;
+    store.yourTurn = !store.yourTurn;
 
     return { valid: true, additional: moveValue.additional };
   } catch (e) {
@@ -184,22 +226,22 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
 </script>
 
 <template>
-  <WelcomeNewPlayer v-if="store.host && !store.friendJoined" />
-  <div id="board-container" v-if="store.friendJoined">
+  <WelcomeNewPlayer v-if="!store.gameStarted && store.host" />
+  <div id="board-container" v-show="store.gameStarted">
     <div class="button-row">
       <button @click="showCircle = !showCircle">Toggle View</button>
     </div>
     <div v-show="showCircle" id="circle-board" class="circle-board"></div>
     <div v-show="!showCircle" id="square-board" class="square-board"></div>
     <div class="turn-note">
-      <span v-if="yourTurn">Your turn </span>
+      <span v-if="store.yourTurn">Your turn </span>
 
       <span v-else>Opponent's Turn </span>
 
-      <span v-if="yourTurn && store.color == 'w'">⚪</span>
-      <span v-if="yourTurn && store.color == 'b'">⚫</span>
-      <span v-if="!yourTurn && store.color == 'w'">⚫</span>
-      <span v-if="!yourTurn && store.color == 'b'">⚪</span>
+      <span v-if="store.yourTurn && store.color == 'w'">⚪</span>
+      <span v-if="store.yourTurn && store.color == 'b'">⚫</span>
+      <span v-if="!store.yourTurn && store.color == 'w'">⚫</span>
+      <span v-if="!store.yourTurn && store.color == 'b'">⚪</span>
     </div>
   </div>
 </template>
