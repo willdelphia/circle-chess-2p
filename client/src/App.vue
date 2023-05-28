@@ -46,6 +46,7 @@ function newGame() {
   if (store.roomName && store.host) {
     setQueryParam("host", store.roomName);
   }
+  checkForEndOfGame(game.moves());
 }
 
 function initBoards(color: string, fen: string | null) {
@@ -178,12 +179,19 @@ function setCurrentTurnFromFen() {
   }
 }
 
+function checkForEndOfGame(movesObject: { [key: string]: string[] }) {
+  const piecesThatCanMove = Object.keys(movesObject);
+  if (piecesThatCanMove.length === 0) {
+    store.gameOver = true;
+  }
+}
+
 function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
   try {
     const moveValue = game.move(fromTo.from, fromTo.to);
     const fenNow = game.exportFEN();
     findCapturedPiecesFromFen(fenNow);
-    console.log(moveValue);
+    checkForEndOfGame(game.moves());
 
     if (sourceBoard === BoardType.Circle) {
       board.movePiece(fromTo.from, fromTo.to, true);
@@ -285,14 +293,17 @@ function findCapturedPiecesFromFen(fen: string) {
         <CapturedBank color="w" :pieces="whiteCaptured" />
       </div>
       <div class="turn-note">
-        <span v-if="store.yourTurn">Your turn </span>
+        <div v-if="!store.gameOver">
+          <span v-if="store.yourTurn">Your turn </span>
 
-        <span v-else>Opponent's Turn </span>
+          <span v-else>Opponent's Turn </span>
 
-        <span v-if="store.yourTurn && store.color == 'w'">⚪</span>
-        <span v-if="store.yourTurn && store.color == 'b'">⚫</span>
-        <span v-if="!store.yourTurn && store.color == 'w'">⚫</span>
-        <span v-if="!store.yourTurn && store.color == 'b'">⚪</span>
+          <span v-if="store.yourTurn && store.color == 'w'">⚪</span>
+          <span v-if="store.yourTurn && store.color == 'b'">⚫</span>
+          <span v-if="!store.yourTurn && store.color == 'w'">⚫</span>
+          <span v-if="!store.yourTurn && store.color == 'b'">⚪</span>
+        </div>
+        <div v-else>Game Over</div>
       </div>
       <div class="black-captured">
         <CapturedBank color="b" :pieces="blackCaptured" />

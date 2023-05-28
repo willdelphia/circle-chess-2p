@@ -15,5 +15,6 @@ export const useMainStore = defineStore("main", {
     hostJoined: false,
     gameStarted: false,
     fen: null as string | null,
+    gameOver: false,
   }),
 });
