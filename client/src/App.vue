@@ -4,6 +4,7 @@ import "./main.scss";
 import "./circle-chessboard.scss";
 
 import WelcomeNewPlayer from "./components/WelcomeNewPlayer.vue";
+import CapturedBank from "./components/CaptureBank.vue";
 import { onMounted, ref } from "vue";
 import { useMainStore } from "./store";
 import { makeid, setQueryParam } from "./utils";
@@ -28,6 +29,8 @@ let board: any;
 let socket: any;
 
 const showCircle = ref(true);
+const whiteCaptured = ref<string[]>([]);
+const blackCaptured = ref<string[]>([]);
 
 function newGame() {
   console.log("Starting new game...");
@@ -136,6 +139,7 @@ onMounted(() => {
     console.log("Fen event");
     store.fen = fen;
     setCurrentTurnFromFen();
+    findCapturedPiecesFromFen(fen);
     store.hostJoined = true;
     store.friendJoined = true;
     afterJoin();
@@ -178,6 +182,7 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
   try {
     const moveValue = game.move(fromTo.from, fromTo.to);
     const fenNow = game.exportFEN();
+    findCapturedPiecesFromFen(fenNow);
     console.log(moveValue);
 
     if (sourceBoard === BoardType.Circle) {
@@ -223,6 +228,48 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
     return { valid: false, additional: null };
   }
 }
+
+function findCapturedPiecesFromFen(fen: string) {
+  function zeroCheck(value: number | undefined) {
+    return value ?? 0;
+  }
+
+  const missingWhitePieces: string[] = [];
+  const missingBlackPieces: string[] = [];
+  const counts: { [key: string]: number } = {};
+  const firstPart = fen.split(" ")[0];
+  const characters = firstPart.split("");
+  characters.forEach((character) => {
+    if (counts.hasOwnProperty(character)) {
+      counts[character]++;
+    } else {
+      counts[character] = 1;
+    }
+  });
+  console.log(firstPart);
+  console.log(counts);
+  const pieceCodes = ["p", "n", "b", "r", "q"];
+  const pieceCounts = [8, 2, 2, 2, 1];
+
+  pieceCodes.forEach((code, index) => {
+    const whitePiece = code.toUpperCase();
+    const blackPiece = code;
+    const whiteDiff = pieceCounts[index] - zeroCheck(counts[whitePiece]);
+    for (let i = 0; i < whiteDiff; i++) {
+      missingWhitePieces.push(code);
+    }
+
+    const blackDiff = pieceCounts[index] - zeroCheck(counts[blackPiece]);
+    for (let i = 0; i < blackDiff; i++) {
+      missingBlackPieces.push(code);
+    }
+
+    console.log(code, blackDiff, whiteDiff);
+  });
+
+  whiteCaptured.value = missingWhitePieces;
+  blackCaptured.value = missingBlackPieces;
+}
 </script>
 
 <template>
@@ -233,15 +280,23 @@ function validateMove(fromTo: FromTo, sourceBoard: BoardType) {
     </div>
     <div v-show="showCircle" id="circle-board" class="circle-board"></div>
     <div v-show="!showCircle" id="square-board" class="square-board"></div>
-    <div class="turn-note">
-      <span v-if="store.yourTurn">Your turn </span>
+    <div class="meta">
+      <div class="white-captured">
+        <CapturedBank color="w" :pieces="whiteCaptured" />
+      </div>
+      <div class="turn-note">
+        <span v-if="store.yourTurn">Your turn </span>
 
-      <span v-else>Opponent's Turn </span>
+        <span v-else>Opponent's Turn </span>
 
-      <span v-if="store.yourTurn && store.color == 'w'">⚪</span>
-      <span v-if="store.yourTurn && store.color == 'b'">⚫</span>
-      <span v-if="!store.yourTurn && store.color == 'w'">⚫</span>
-      <span v-if="!store.yourTurn && store.color == 'b'">⚪</span>
+        <span v-if="store.yourTurn && store.color == 'w'">⚪</span>
+        <span v-if="store.yourTurn && store.color == 'b'">⚫</span>
+        <span v-if="!store.yourTurn && store.color == 'w'">⚫</span>
+        <span v-if="!store.yourTurn && store.color == 'b'">⚪</span>
+      </div>
+      <div class="black-captured">
+        <CapturedBank color="b" :pieces="blackCaptured" />
+      </div>
     </div>
   </div>
 </template>
