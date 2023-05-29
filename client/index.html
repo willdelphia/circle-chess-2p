@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Circle Chess</title>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-6Z5R58PB09"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", import.meta.env.VITE_GTAG);
+    </script>
   </head>
   <body>
     <div id="app"></div>
